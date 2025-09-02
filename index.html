@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestor Vivienda Compartida</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
+    header { background: #4CAF50; color: white; padding: 1em; font-size: 1.5em; }
+    .pantalla { display: none; padding: 2em; }
+    .activa { display: block; }
+    button { margin: 0.5em; padding: 1em 2em; font-size: 1em; cursor: pointer; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+             background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+    .modal-content { background: #fff; padding: 2em; border-radius: 10px; width: 350px; }
+    label { display: block; margin-top: 1em; text-align: left; }
+    input, select, textarea { width: 100%; padding: 0.5em; }
+    ul { text-align: left; max-width: 600px; margin: 1em auto; }
+    .ingreso { color: green; font-weight: bold; }
+    .gasto { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>Gestor Vivienda Compartida</header>
+
+  <!-- Pantalla 1: Menú principal -->
+  <div id="pantalla-inicio" class="pantalla activa">
+    <h2>Menú principal</h2>
+    <button onclick="abrirPantalla('ingresos')">Ingresos</button>
+    <button onclick="abrirPantalla('gastos')">Gastos</button>
+    <button onclick="abrirPantalla('resumen')">Resumen general</button>
+    <button onclick="abrirPantalla('habitacion')">Datos habitación</button>
+  </div>
+
+  <!-- Pantalla 2: Ingresos -->
+  <div id="pantalla-ingresos" class="pantalla">
+    <h2>Ingresos</h2>
+    <button onclick="abrirModal('ingreso')">➕ Nueva entrada</button>
+    <button onclick="mostrarTotales('ingreso')">📊 Listado</button>
+    <button onclick="mostrarTotalesPorHabitacion('ingreso')">🏠 Totales por habitación</button>
+    <button onclick="volver()">⬅ Volver</button>
+    <div id="lista-ingreso"></div>
+  </div>
+
+  <!-- Pantalla 2: Gastos -->
+  <div id="pantalla-gastos" class="pantalla">
+    <h2>Gastos</h2>
+    <button onclick="abrirModal('gasto')">➕ Nueva entrada</button>
+    <button onclick="mostrarTotales('gasto')">📊 Listado</button>
+    <button onclick="mostrarTotalesPorHabitacion('gasto')">🏠 Totales por habitación</button>
+    <button onclick="volver()">⬅ Volver</button>
+    <div id="lista-gasto"></div>
+  </div>
+
+  <!-- Pantalla 2: Resumen -->
+  <div id="pantalla-resumen" class="pantalla">
+    <h2>Resumen general</h2>
+    <button onclick="mostrarBalance()">📊 Ver balance</button>
+    <button onclick="volver()">⬅ Volver</button>
+    <div id="resumen-general"></div>
+  </div>
+
+  <!-- Pantalla 2: Datos habitación -->
+  <div id="pantalla-habitacion" class="pantalla">
+    <h2>Datos de la habitación</h2>
+    <label>Selecciona habitación:
+      <select id="selector-habitacion" onchange="cargarDatosHabitacion()">
+        <option value="">-- Elige --</option>
+        <option value="Habitación 1">Habitación 1</option>
+        <option value="Habitación 2">Habitación 2</option>
+        <option value="Habitación 3">Habitación 3</option>
+        <option value="Habitación 4">Habitación 4</option>
+        <option value="Habitación 5">Habitación 5</option>
+      </select>
+    </label>
+
+    <form id="form-habitacion" style="margin-top:1em; display:none;">
+      <label>Nombre:<input type="text" name="nombre"></label>
+      <label>Apellidos:<input type="text" name="apellidos"></label>
+      <label>Nº DNI:<input type="text" name="dni"></label>
+      <label>País:<input type="text" name="pais"></label>
+      <label>Edad:<input type="number" name="edad"></label>
+      <label>Fecha de alta:<input type="text" name="alta" placeholder="dd/mm/aaaa"></label>
+      <label>Fecha prevista de baja:<input type="text" name="baja" placeholder="dd/mm/aaaa"></label>
+      <label>Notas:<textarea name="notas"></textarea></label>
+      <label>Contrato:<input type="file" name="contrato"></label>
+      <label>Foto DNI:<input type="file" name="foto"></label>
+      <button type="submit">Guardar datos</button>
+    </form>
+
+    <button onclick="volver()">⬅ Volver</button>
+  </div>
+
+  <!-- Modal para nueva entrada -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <h3 id="modal-titulo">Nueva entrada</h3>
+      <form id="form-entrada">
+        <label>Fecha:<input type="date" name="fecha" required></label>
+        <label>Importe:<input type="number" name="importe" step="0.01" required></label>
+        <label>Categoría:
+          <select name="categoria">
+            <option value="Alquiler">Alquiler</option>
+            <option value="Luz">Luz</option>
+            <option value="Agua">Agua</option>
+            <option value="Internet">Internet</option>
+            <option value="Otros">Otros</option>
+          </select>
+        </label>
+        <label>Asignar a:
+          <select name="habitacion">
+            <option value="Habitación 1">Habitación 1</option>
+            <option value="Habitación 2">Habitación 2</option>
+            <option value="Habitación 3">Habitación 3</option>
+            <option value="Habitación 4">Habitación 4</option>
+            <option value="Habitación 5">Habitación 5</option>
+            <option value="Vivienda">Vivienda</option>
+          </select>
+        </label>
+        <label>Notas:<input type="text" name="notas"></label>
+        <input type="hidden" name="tipo" id="tipoEntrada">
+        <button type="submit">Guardar</button>
+        <button type="button" onclick="cerrarModal()">Cancelar</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function abrirPantalla(nombre) {
+      document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+      document.getElementById('pantalla-' + nombre).classList.add('activa');
+    }
+
+    function volver() {
+      document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+      document.getElementById('pantalla-inicio').classList.add('activa');
+    }
+
+    function abrirModal(tipo) {
+      document.getElementById('modal').style.display = 'flex';
+      document.getElementById('modal-titulo').innerText = 'Nueva ' + tipo;
+      document.getElementById('tipoEntrada').value = tipo;
+    }
+
+    function cerrarModal() {
+      document.getElementById('modal').style.display = 'none';
+      document.getElementById('form-entrada').reset();
+    }
+
+    document.getElementById('form-entrada').addEventListener('submit', function(e) {
+      e.preventDefault();
+      let datos = Object.fromEntries(new FormData(this).entries());
+      let lista = JSON.parse(localStorage.getItem(datos.tipo)) || [];
+      lista.push(datos);
+      localStorage.setItem(datos.tipo, JSON.stringify(lista));
+      cerrarModal();
+      alert("Entrada guardada en " + datos.tipo);
+    });
+
+    function mostrarTotales(tipo) {
+      let lista = JSON.parse(localStorage.getItem(tipo)) || [];
+      let html = "<ul>";
+      lista.forEach(item => {
+        let clase = (tipo === 'ingreso') ? "ingreso" : "gasto";
+        let signo = (tipo === 'ingreso') ? "+" : "-";
+        html += `<li class="${clase}">${item.fecha} - ${item.categoria} - ${signo}${parseFloat(item.importe).toFixed(2)}€ (→ ${item.habitacion})</li>`;
+      });
+      html += "</ul>";
+      document.getElementById('lista-' + tipo).innerHTML = html;
+    }
+
+    function mostrarTotalesPorHabitacion(tipo) {
+      let lista = JSON.parse(localStorage.getItem(tipo)) || [];
+      let totales = {};
+      lista.forEach(item => {
+        let hab = item.habitacion || "Sin asignar";
+        if (!totales[hab]) totales[hab] = 0;
+        totales[hab] += parseFloat(item.importe);
+      });
+      let html = "<h3>Totales por habitación</h3><ul>";
+      for (let hab in totales) {
+        let clase = (tipo === 'ingreso') ? "ingreso" : "gasto";
+        let signo = (tipo === 'ingreso') ? "+" : "-";
+        html += `<li class="${clase}">${hab}: ${signo}${totales[hab].toFixed(2)}€</li>`;
+      }
+      html += "</ul>";
+      document.getElementById('lista-' + tipo).innerHTML = html;
+    }
+
+    function mostrarBalance() {
+      let ingresos = JSON.parse(localStorage.getItem('ingreso')) || [];
+      let gastos = JSON.parse(localStorage.getItem('gasto')) || [];
+      let totalIngresos = ingresos.reduce((acc, i) => acc + parseFloat(i.importe), 0);
+      let totalGastos = gastos.reduce((acc, g) => acc + parseFloat(g.importe), 0);
+      let balance = totalIngresos - totalGastos;
+      document.getElementById('resumen-general').innerHTML =
+        `<p class="ingreso">Total ingresos: +${totalIngresos.toFixed(2)}€</p>
+         <p class="gasto">Total gastos: -${totalGastos.toFixed(2)}€</p>
+         <p><strong>Balance: ${balance.toFixed(2)}€</strong></p>`;
+    }
+
+    // ---- Datos por habitación ----
+    function cargarDatosHabitacion() {
+      let hab = document.getElementById("selector-habitacion").value;
+      let form = document.getElementById("form-habitacion");
+      if (!hab) {
+        form.style.display = "none";
+        return;
+      }
+      form.style.display = "block";
+      let datos = JSON.parse(localStorage.getItem("datos-" + hab)) || {};
+      for (let campo of form.elements) {
+        if (campo.name && datos[campo.name]) {
+          campo.value = datos[campo.name];
+        }
+      }
+      form.onsubmit = function(e) {
+        e.preventDefault();
+        let nuevosDatos = Object.fromEntries(new FormData(form).entries());
+        localStorage.setItem("datos-" + hab, JSON.stringify(nuevosDatos));
+        alert("Datos guardados para " + hab);
+      }
+    }
+  </script>
+</body>
+</html>
