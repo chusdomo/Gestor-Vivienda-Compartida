@@ -2,432 +2,622 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Gestor Vivienda Compartida (v2)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestor de Vivienda</title>
   <style>
-    :root{
-      --ok:#198754; --bad:#dc3545; --bg:#f7f7f8; --card:#ffffff; --ink:#222;
-      --muted:#6b7280; --ring:#4CAF50;
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .no-print { margin-right: 10px; }
+    @media print {
+      .no-print { display: none; }
+      body { margin: 0; }
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    header{position:sticky;top:0;z-index:10;background:#4CAF50;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 6px rgba(0,0,0,.12)}
-    header h1{font-size:18px;margin:0}
-    main{padding:16px;max-width:1100px;margin:0 auto}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width:600px){.grid{grid-template-columns:1fr}}
-    .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.06)}
-    .btn{appearance:none;border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600}
-    .btn:focus{outline:none;box-shadow:0 0 0 3px rgba(76,175,80,.35)}
-    .btn.primary{background:#4CAF50;color:#fff;border-color:#4CAF50}
-    .stack{display:flex;flex-wrap:wrap;gap:10px}
-    .hidden{display:none}
-    label{font-size:14px;color:var(--muted);display:block;margin:8px 0 4px}
-    input,select,textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px;font:inherit}
-    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px rgba(76,175,80,.2)}
-    .list{margin:8px 0 0;padding:0;list-style:none}
-    .list li{padding:10px 12px;border:1px solid #eef0f3;border-radius:12px;margin:8px 0;background:#fff;display:flex;justify-content:space-between;gap:12px;align-items:center}
-    .pill{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef0f3}
-    .money.in{color:var(--ok);font-weight:700}
-    .money.out{color:var(--bad);font-weight:700}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
-    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width:700px){.two-col{grid-template-columns:1fr}}
-    .section-title{margin:0 0 8px;font-size:16px}
-    .muted{color:var(--muted);font-size:12px}
-    .space{height:8px}
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;place-items:center;padding:16px}
-    .modal .panel{background:#fff;border-radius:16px;max-width:520px;width:100%;padding:16px}
-    .right{text-align:right}
-    .danger{color:var(--bad)}
+    .beneficio-positivo { color: green; font-size: 1.2em; }
+    .beneficio-negativo { color: red; font-size: 1.2em; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Gestor Vivienda Compartida</h1>
-    <div class="toolbar">
-      <button class="btn" onclick="exportar()">Exportar JSON</button>
-      <button class="btn danger" onclick="if(confirm('¿Vaciar todos los datos?')){localStorage.clear();location.reload()}">Vaciar</button>
-    </div>
-  </header>
+  <h1>Gestor de Vivienda</h1>
 
-  <main>
-    <!-- Inicio -->
-    <section id="view-home" class="card">
-      <h2 class="section-title">Menú principal</h2>
-      <div class="grid">
-        <button class="btn primary" onclick="go('ingresos')">Ingresos</button>
-        <button class="btn primary" onclick="go('gastos')">Gastos</button>
-        <button class="btn primary" onclick="go('resumen')">Resumen general</button>
-        <button class="btn" onclick="go('habitacion')">Datos habitación</button>
-        <button class="btn" onclick="go('proveedor')">Datos proveedor</button>
-        <button class="btn" onclick="go('buscar')">Buscar</button>
-      </div>
-    </section>
+  <!-- Menú -->
+  <button onclick="mostrarApartado('ingresos')">Ingresos</button>
+  <button onclick="mostrarApartado('gastos')">Gastos</button>
+  <button onclick="mostrarApartado('habitaciones')">Habitaciones</button>
+  <button onclick="mostrarApartado('proveedores')">Proveedores</button>
+  <button onclick="mostrarApartado('backup')">Backup</button>
+  <button onclick="mostrarApartado('resumen')">Resumen</button>
 
-    <!-- Ingresos -->
-    <section id="view-ingresos" class="card hidden">
-      <div class="stack">
-        <h2 class="section-title">Ingresos</h2>
-        <div class="toolbar">
-          <button class="btn primary" onclick="openModal('ingreso')">➕ Nuevo ingreso</button>
-          <button class="btn" onclick="renderListado('ingreso')">📋 Listado</button>
-          <button class="btn" onclick="renderTotalesPorHabitacion('ingreso')">🏠 Total por habitación</button>
-          <button class="btn" onclick="renderTotalGlobal('ingreso')">💰 Total ingresos</button>
-          <button class="btn" onclick="go('home')">⬅ Volver</button>
-        </div>
-        <ul id="list-ingreso" class="list"></ul>
-      </div>
-    </section>
+  <!-- INGRESOS -->
+  <div id="ingresos" style="display:none;">
+    <button onclick="volverMenu()">Volver</button>
+    <h2>Ingresos</h2>
+    <form id="formIngreso" onsubmit="guardarIngreso(event)">
+      <input type="hidden" id="ingresoId">
+      <label>Fecha: <input type="date" id="ingresoFecha" required></label><br>
+      <label>Periodo:
+        <select id="ingresoPeriodo" required>
+          <option value="">-- Selecciona --</option>
+          <option>Septiembre 2025</option>
+          <option>Octubre 2025</option>
+          <option>Noviembre 2025</option>
+          <option>Diciembre 2025</option>
+          <option>Enero 2026</option>
+          <option>Febrero 2026</option>
+          <option>Marzo 2026</option>
+          <option>Abril 2026</option>
+          <option>Mayo 2026</option>
+          <option>Junio 2026</option>
+          <option>Julio 2026</option>
+          <option>Agosto 2026</option>
+          <option>Septiembre 2026</option>
+          <option>Octubre 2026</option>
+          <option>Noviembre 2026</option>
+          <option>Diciembre 2026</option>
+          <option>Enero 2027</option>
+        </select>
+      </label><br>
+      <label>Nombre: <input type="text" id="ingresoNombre"></label><br>
+      <label>Habitación (opcional):
+        <select id="ingresoHabitacion" onchange="autocompletarNombreInquilino()">
+          <option value="">-- Ninguna --</option>
+          <option>Habitación 01</option>
+          <option>Habitación 02</option>
+          <option>Habitación 03</option>
+          <option>Habitación 04</option>
+          <option>Habitación 05</option>
+        </select>
+      </label><br>
+      <label>Concepto:
+        <select id="ingresoConcepto">
+          <option>Fianza</option>
+          <option>Alquiler</option>
+          <option>Otro</option>
+        </select>
+      </label><br>
+      <label>Cantidad: <input type="number" id="ingresoCantidad" required></label><br>
+      <button type="submit">Guardar</button>
+    </form>
+    <ul id="listaIngresos"></ul>
+  </div>
 
-    <!-- Gastos -->
-    <section id="view-gastos" class="card hidden">
-      <div class="stack">
-        <h2 class="section-title">Gastos</h2>
-        <div class="toolbar">
-          <button class="btn primary" onclick="openModal('gasto')">➕ Nuevo gasto</button>
-          <button class="btn" onclick="renderListado('gasto')">📋 Listado</button>
-          <button class="btn" onclick="renderTotalesPorCategoria()">📂 Total por categoría</button>
-          <button class="btn" onclick="renderTotalGlobal('gasto')">💸 Total gastos</button>
-          <button class="btn" onclick="go('home')">⬅ Volver</button>
-        </div>
-        <ul id="list-gasto" class="list"></ul>
-      </div>
-    </section>
+  <!-- GASTOS -->
+  <div id="gastos" style="display:none;">
+    <button onclick="volverMenu()">Volver</button>
+    <h2>Gastos</h2>
+    <form id="formGasto" onsubmit="guardarGasto(event)">
+      <input type="hidden" id="gastoId">
+      <label>Fecha: <input type="date" id="gastoFecha" required></label><br>
+      <label>Concepto:
+        <select id="gastoConcepto" onchange="autocompletarProveedorPorConcepto()">
+          <option value="">-- Selecciona --</option>
+          <option>Electricidad</option>
+          <option>Gas</option>
+          <option>Agua</option>
+          <option>Internet</option>
+          <option>Comunidad</option>
+          <option>Otros</option>
+        </select>
+      </label><br>
+      <label>Proveedor (opcional):
+        <select id="gastoProveedor"></select>
+      </label><br>
+      <label>Habitación (opcional):
+        <select id="gastoHabitacion">
+          <option value="">-- Ninguna --</option>
+          <option>Habitación 01</option>
+          <option>Habitación 02</option>
+          <option>Habitación 03</option>
+          <option>Habitación 04</option>
+          <option>Habitación 05</option>
+        </select>
+      </label><br>
+      <label>Notas: <input type="text" id="gastoNotas"></label><br>
+      <label>Cantidad: <input type="number" id="gastoCantidad" required></label><br>
+      <button type="submit">Guardar</button>
+    </form>
+    <ul id="listaGastos"></ul>
+  </div>
 
-    <!-- Resumen -->
-    <section id="view-resumen" class="card hidden">
-      <h2 class="section-title">Resumen general</h2>
-      <div class="toolbar">
-        <button class="btn" onclick="renderBalance()">📊 Balance ingresos y gastos</button>
-        <button class="btn" onclick="go('home')">⬅ Volver</button>
-      </div>
-      <div id="resumen"></div>
-    </section>
+  <!-- HABITACIONES -->
+  <div id="habitaciones" style="display:none;">
+    <button onclick="volverMenu()">Volver</button>
+    <h2>Habitaciones</h2>
+    <form id="formHabitacion" onsubmit="guardarHabitacion(event)">
+      <input type="hidden" id="habId">
+      <label>Nombre: <input type="text" id="habNombre" required></label><br>
+      <label>DNI: <input type="text" id="habDNI" required></label><br>
+      <label>Móvil: <input type="tel" id="habMovil" required></label><br>
+      <label>Nacionalidad: <input type="text" id="habNacionalidad" required></label><br>
+      <label>Habitación:
+        <select id="habHabitacion">
+          <option>Habitación 01</option>
+          <option>Habitación 02</option>
+          <option>Habitación 03</option>
+          <option>Habitación 04</option>
+          <option>Habitación 05</option>
+        </select>
+      </label><br>
+      <label>Entrada: <input type="date" id="habEntrada" required></label><br>
+      <label>Salida: <input type="date" id="habSalida" required></label><br>
+      <button type="submit">Guardar</button>
+    </form>
+    <ul id="listaHabitaciones"></ul>
+  </div>
 
-    <!-- Datos habitación -->
-    <section id="view-habitacion" class="card hidden">
-      <h2 class="section-title">Datos habitación</h2>
-      <div class="two-col">
-        <div>
-          <label>Habitación</label>
-          <select id="sel-hab" onchange="cargarFichaHab()">
-            <option value="">— Elige —</option>
-            <option>Habitación 1</option>
-            <option>Habitación 2</option>
-            <option>Habitación 3</option>
-            <option>Habitación 4</option>
-            <option>Habitación 5</option>
-          </select>
-        </div>
-      </div>
-      <div class="space"></div>
-      <form id="form-hab" class="hidden">
-        <div class="two-col">
-          <div><label>Nombre</label><input name="nombre"></div>
-          <div><label>Apellidos</label><input name="apellidos"></div>
-          <div><label>Nº DNI</label><input name="dni"></div>
-          <div><label>País</label><input name="pais"></div>
-          <div><label>Edad</label><input type="number" name="edad" min="0"></div>
-          <div><label>Fecha de alta (dd/mm/aaaa)</label><input name="alta" placeholder="dd/mm/aaaa"></div>
-          <div><label>Fecha prevista de baja (dd/mm/aaaa)</label><input name="baja" placeholder="dd/mm/aaaa"></div>
-          <div><label>Notas</label><textarea name="notas" rows="3"></textarea></div>
-          <div><label>Contrato (adjunto)</label><input type="file" name="contrato"></div>
-          <div><label>Foto DNI (adjunto)</label><input type="file" name="foto"></div>
-        </div>
-        <div class="right"><button class="btn primary" type="submit">Guardar datos</button></div>
-      </form>
-      <div class="toolbar"><button class="btn" onclick="go('home')">⬅ Volver</button></div>
-    </section>
+  <!-- PROVEEDORES -->
+  <div id="proveedores" style="display:none;">
+    <button onclick="volverMenu()">Volver</button>
+    <h2>Proveedores</h2>
+    <form id="formProveedor" onsubmit="guardarProveedor(event)">
+      <input type="hidden" id="provId">
+      <label>Nombre: <input type="text" id="provNombre" required></label><br>
+      <label>Concepto:
+        <select id="provConcepto" required>
+          <option>Comunidad</option>
+          <option>Electricidad</option>
+          <option>Gas</option>
+          <option>Agua</option>
+          <option>Internet</option>
+          <option>Otros</option>
+        </select>
+      </label><br>
+      <label>Usuario: <input type="text" id="provUsuario" required></label><br>
+      <label>Contraseña: <input type="text" id="provPassword" required></label><br>
+      <label>Correo: <input type="email" id="provCorreo" required></label><br>
+      <button type="submit">Guardar</button>
+    </form>
+    <ul id="listaProveedores"></ul>
+  </div>
 
-    <!-- Datos proveedor -->
-    <section id="view-proveedor" class="card hidden">
-      <h2 class="section-title">Datos proveedor</h2>
-      <form id="form-prov">
-        <div class="two-col">
-          <div><label>Nombre</label><input name="nombre" required></div>
-          <div><label>Correo electrónico</label><input type="email" name="correo" required></div>
-          <div><label>Contraseña</label><input type="password" name="password" required></div>
-          <div style="grid-column:1/-1"><label>Datos contrato</label><textarea name="contrato" rows="4"></textarea></div>
-        </div>
-        <div class="right"><button class="btn primary" type="submit">Guardar proveedor</button></div>
-      </form>
-      <div class="toolbar"><button class="btn" onclick="go('home')">⬅ Volver</button></div>
-      <ul id="list-prov" class="list"></ul>
-    </section>
+  <!-- BACKUP -->
+  <div id="backup" style="display:none;">
+    <button onclick="volverMenu()">Volver</button>
+    <h2>Backup</h2>
+    <button onclick="exportarBackup()">Exportar Backup</button>
+    <input type="file" id="importFile" onchange="importarBackup(event)">
+  </div>
 
-    <!-- Buscar -->
-    <section id="view-buscar" class="card hidden">
-      <h2 class="section-title">Buscar</h2>
-      <form id="form-buscar" class="two-col">
-        <div>
-          <label>En</label>
-          <select name="coleccion">
-            <option value="ingreso">Ingresos</option>
-            <option value="gasto">Gastos</option>
-          </select>
-        </div>
-        <div>
-          <label>Campo</label>
-          <select name="campo">
-            <option value="categoria">Categoría</option>
-            <option value="importe">Importe</option>
-            <option value="fecha">Fecha</option>
-            <option value="periodo">Periodo</option>
-            <option value="habitacion">Habitación</option>
-            <option value="notas">Notas</option>
-          </select>
-        </div>
-        <div style="grid-column:1/-1">
-          <label>Valor</label>
-          <input name="valor" placeholder="Ej.: Alquiler, 250, Enero 2025, Habitación 3…">
-        </div>
-        <div class="right" style="grid-column:1/-1"><button class="btn primary">Buscar</button></div>
-      </form>
-      <ul id="list-buscar" class="list"></ul>
-      <div class="toolbar"><button class="btn" onclick="go('home')">⬅ Volver</button></div>
-    </section>
-  </main>
+  <!-- RESUMEN -->
+  <div id="resumen" style="display:none;">
+    <button onclick="volverMenu()" class="no-print">Volver</button>
+    <button onclick="imprimirResumen()" class="no-print">🖨️ Imprimir/Exportar Resumen</button>
+    <h2>Resumen Financiero</h2>
 
-  <!-- Modal nueva entrada -->
-  <div id="modal" class="modal" role="dialog" aria-modal="true">
-    <div class="panel">
-      <h3 id="modal-title">Nueva entrada</h3>
-      <form id="form-item">
-        <div class="two-col">
-          <div><label>Fecha</label><input type="date" name="fecha" required></div>
-          <div>
-            <label>Importe</label>
-            <input type="number" name="importe" step="0.01" required>
-          </div>
-          <div>
-            <label>Categoría</label>
-            <select name="categoria" id="sel-cat"></select>
-          </div>
-          <div>
-            <label>Asignar a</label>
-            <select name="habitacion">
-              <option>Habitación 1</option><option>Habitación 2</option>
-              <option>Habitación 3</option><option>Habitación 4</option>
-              <option>Habitación 5</option><option>Vivienda</option>
-            </select>
-          </div>
-          <div id="wrap-periodo" class="hidden" style="grid-column:1/-1">
-            <label>Periodo</label>
-            <select name="periodo" id="sel-periodo"></select>
-          </div>
-          <div style="grid-column:1/-1">
-            <label>Notas</label><input name="notas" placeholder="Obligatorio si categoría = Otros">
-          </div>
-        </div>
-        <div class="right">
-          <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
-          <button class="btn primary">Guardar</button>
-        </div>
-      </form>
-    </div>
+    <h3>📈 Ingresos por Habitación</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Habitación</th>
+          <th>Total</th>
+          <th>Fianzas</th>
+          <th>Alquileres</th>
+        </tr>
+      </thead>
+      <tbody id="tablaIngresosHabitacion">
+        <!-- Se llenará con JS -->
+      </tbody>
+    </table>
+
+    <!-- ✅ NUEVOS CAMPOS -->
+    <h4><strong>Total Fianzas:</strong> <span id="totalFianzas">0.00€</span></h4>
+    <h4><strong>Total Alquileres:</strong> <span id="totalAlquileres">0.00€</span></h4>
+
+    <h4><strong>Total General de Ingresos:</strong> <span id="totalIngresosGeneral">0.00€</span></h4>
+
+    <h3>📉 Gastos por Concepto</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="tablaGastosConcepto">
+        <!-- Se llenará con JS -->
+      </tbody>
+    </table>
+
+    <h4><strong>Total General de Gastos:</strong> <span id="totalGastosGeneral">0.00€</span></h4>
+
+    <h3>✅ Beneficio Neto: <strong id="beneficioNeto" class="beneficio-positivo">0.00€</strong></h3>
   </div>
 
   <script>
-    // ---------- util ----------
-    const $ = s => document.querySelector(s);
-    const $$ = s => document.querySelectorAll(s);
-    const LS = {
-      get:k => JSON.parse(localStorage.getItem(k)||'[]'),
-      set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
-    };
+    let datos = { ingresos: [], gastos: [], habitaciones: [], proveedores: [] };
 
-    function go(view){
-      $$('.card').forEach(c=>c.classList.add('hidden'));
-      const id = {home:'view-home', ingresos:'view-ingresos', gastos:'view-gastos', resumen:'view-resumen', habitacion:'view-habitacion', proveedor:'view-proveedor', buscar:'view-buscar'}[view];
-      document.getElementById(id).classList.remove('hidden');
-    }
-
-    // ---------- modal nueva entrada ----------
-    function monthsRange(years=1){
-      const now = new Date(); const items=[];
-      const start = new Date(now.getFullYear(),0,1);
-      for(let y=0;y<years;y++){
-        for(let m=0;m<12;m++){
-          const d = new Date(start.getFullYear()+y,m,1);
-          const label = d.toLocaleDateString('es-ES',{month:'long', year:'numeric'});
-          items.push(label.charAt(0).toUpperCase()+label.slice(1));
-        }
+    function mostrarApartado(id) {
+      document.querySelectorAll("div").forEach(d => d.style.display = "none");
+      document.getElementById(id).style.display = "block";
+      if (id === "gastos") {
+        actualizarProveedoresSelect();
       }
-      return items;
-    }
-
-    function openModal(tipo){
-      $('#modal').style.display='grid';
-      $('#modal-title').textContent = tipo==='ingreso' ? 'Nuevo ingreso' : 'Nuevo gasto';
-      $('#form-item').dataset.tipo = tipo;
-
-      // categorías
-      const sel = $('#sel-cat'); sel.innerHTML='';
-      if(tipo==='ingreso'){
-        ['Fianza','Alquiler'].forEach(c=> sel.innerHTML += `<option>${c}</option>`);
-        $('#wrap-periodo').classList.remove('hidden');
-        // periodo: 2 años (actual y siguiente)
-        const meses = monthsRange(2);
-        const sp = $('#sel-periodo'); sp.innerHTML='';
-        meses.forEach(m=> sp.innerHTML += `<option>${m}</option>`);
-      }else{
-        ['Electricidad','Gas','Agua','Internet','Otros'].forEach(c=> sel.innerHTML += `<option>${c}</option>`);
-        $('#wrap-periodo').classList.add('hidden');
+      if (id === "resumen") {
+        calcularResumen(); // ✅ Recalcula y muestra TODO
       }
     }
-    function closeModal(){
-      $('#modal').style.display='none';
-      $('#form-item').reset();
+
+    function volverMenu() {
+      document.querySelectorAll("div").forEach(d => d.style.display = "none");
     }
 
-    $('#form-item').addEventListener('submit', e=>{
+    // ---------------- INGRESOS ----------------
+    function guardarIngreso(e) {
       e.preventDefault();
-      const tipo = e.currentTarget.dataset.tipo;
-      const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-      if(data.categoria==='Otros' && !data.notas){
-        alert("Debes rellenar Notas cuando la categoría es 'Otros'.");
+      let id = document.getElementById("ingresoId").value;
+      let obj = {
+        id: id || Date.now(),
+        fecha: document.getElementById("ingresoFecha").value,
+        periodo: document.getElementById("ingresoPeriodo").value,
+        nombre: document.getElementById("ingresoNombre").value,
+        habitacion: document.getElementById("ingresoHabitacion").value,
+        concepto: document.getElementById("ingresoConcepto").value,
+        cantidad: document.getElementById("ingresoCantidad").value
+      };
+      if (id) {
+        datos.ingresos = datos.ingresos.map(i => i.id == id ? obj : i);
+      } else {
+        datos.ingresos.push(obj);
+      }
+      renderIngresos();
+      backup();
+      e.target.reset();
+      document.getElementById("ingresoId").value = "";
+    }
+
+    function editarIngreso(id) {
+      let i = datos.ingresos.find(x => x.id == id);
+      document.getElementById("ingresoId").value = i.id;
+      document.getElementById("ingresoFecha").value = i.fecha;
+      document.getElementById("ingresoPeriodo").value = i.periodo;
+      document.getElementById("ingresoNombre").value = i.nombre;
+      document.getElementById("ingresoHabitacion").value = i.habitacion;
+      document.getElementById("ingresoConcepto").value = i.concepto;
+      document.getElementById("ingresoCantidad").value = i.cantidad;
+    }
+
+    function borrarIngreso(id) {
+      datos.ingresos = datos.ingresos.filter(i => i.id != id);
+      renderIngresos();
+      backup();
+    }
+
+    function renderIngresos() {
+      let ul = document.getElementById("listaIngresos");
+      ul.innerHTML = "";
+      datos.ingresos.forEach(i => {
+        let li = document.createElement("li");
+        li.textContent = `${i.fecha} - ${i.periodo} - ${i.nombre} (${i.habitacion}) - ${i.concepto}: ${i.cantidad}€ `;
+        li.innerHTML += `<button onclick="editarIngreso(${i.id})">Editar</button>
+                         <button onclick="borrarIngreso(${i.id})">Borrar</button>`;
+        ul.appendChild(li);
+      });
+    }
+
+    function autocompletarNombreInquilino() {
+      let habitacion = document.getElementById("ingresoHabitacion").value;
+      if (!habitacion) {
+        document.getElementById("ingresoNombre").value = "";
         return;
       }
-      // normalizar importe
-      data.importe = parseFloat(data.importe||0);
-      // guardar
-      const arr = LS.get(tipo);
-      arr.push(data); LS.set(tipo,arr);
-      closeModal();
-      renderListado(tipo);
-      alert(`${tipo==='ingreso'?'Ingreso':'Gasto'} guardado.`);
-    });
-
-    // ---------- listados y totales ----------
-    function money(v, tipo){
-      const sign = tipo==='ingreso' ? '+' : '-';
-      return `<span class="money ${tipo==='ingreso'?'in':'out'}">${sign}${Number(v).toFixed(2)}€</span>`;
-    }
-    function renderListado(tipo){
-      const list = LS.get(tipo);
-      const el = document.getElementById(`list-${tipo}`);
-      if(list.length===0){ el.innerHTML = '<p class="muted">No hay datos aún.</p>'; return; }
-      el.innerHTML = list.map(it=>{
-        const per = it.periodo ? `<span class="pill">${it.periodo}</span>`:'';
-        return `<li>
-          <div>
-            <div><strong>${it.categoria}</strong> ${per}</div>
-            <div class="muted">${it.fecha} · ${it.habitacion} · ${it.notas||''}</div>
-          </div>
-          <div>${money(it.importe, tipo)}</div>
-        </li>`;
-      }).join('');
+      let inquilino = datos.habitaciones.find(h => h.habitacion === habitacion);
+      document.getElementById("ingresoNombre").value = inquilino ? inquilino.nombre : "";
     }
 
-    function renderTotalesPorHabitacion(tipo){
-      const list = LS.get(tipo);
-      const sum = {};
-      list.forEach(it=>{
-        const key = it.habitacion || 'Sin asignar';
-        sum[key] = (sum[key]||0) + Number(it.importe||0);
-      });
-      const el = document.getElementById(`list-${tipo}`);
-      const signo = tipo==='ingreso' ? '+' : '-';
-      const cls = tipo==='ingreso' ? 'in' : 'out';
-      if(Object.keys(sum).length===0){ el.innerHTML = '<p class="muted">No hay datos.</p>'; return; }
-      el.innerHTML = Object.entries(sum).map(([k,v])=>`<li><div><strong>${k}</strong></div><div><span class="money ${cls}">${signo}${v.toFixed(2)}€</span></div></li>`).join('');
-    }
-
-    function renderTotalesPorCategoria(){
-      const list = LS.get('gasto');
-      const sum = {};
-      list.forEach(it=>{
-        const key = it.categoria || '—';
-        sum[key] = (sum[key]||0) + Number(it.importe||0);
-      });
-      const el = $('#list-gasto');
-      if(Object.keys(sum).length===0){ el.innerHTML = '<p class="muted">No hay datos.</p>'; return; }
-      el.innerHTML = Object.entries(sum).map(([k,v])=>`<li><div><strong>${k}</strong></div><div><span class="money out">-${v.toFixed(2)}€</span></div></li>`).join('');
-    }
-
-    function renderTotalGlobal(tipo){
-      const list = LS.get(tipo);
-      const total = list.reduce((a,b)=> a + Number(b.importe||0), 0);
-      const el = document.getElementById(`list-${tipo}`);
-      el.innerHTML = `<li style="justify-content:center"><div><strong>${tipo==='ingreso'?'Total ingresos':'Total gastos'}</strong></div><div>${money(total, tipo)}</div></li>`;
-    }
-
-    function renderBalance(){
-      const ins = LS.get('ingreso').reduce((a,b)=> a+Number(b.importe||0), 0);
-      const outs = LS.get('gasto').reduce((a,b)=> a+Number(b.importe||0), 0);
-      const bal = ins - outs;
-      $('#resumen').innerHTML = `
-        <div class="two-col">
-          <div class="card"><h3>Total ingresos</h3><p class="money in">+${ins.toFixed(2)}€</p></div>
-          <div class="card"><h3>Total gastos</h3><p class="money out">-${outs.toFixed(2)}€</p></div>
-        </div>
-        <div class="card" style="margin-top:12px"><h3>Balance</h3><p style="font-weight:700">${bal.toFixed(2)}€</p></div>`;
-    }
-
-    // ---------- datos habitación ----------
-    function cargarFichaHab(){
-      const hab = $('#sel-hab').value;
-      const form = $('#form-hab');
-      if(!hab){ form.classList.add('hidden'); return; }
-      form.classList.remove('hidden');
-      const data = JSON.parse(localStorage.getItem('datos-'+hab)||'{}');
-      [...form.elements].forEach(el=>{ if(el.name && data[el.name]) el.value = data[el.name]; });
-      form.onsubmit = e=>{
-        e.preventDefault();
-        const newData = Object.fromEntries(new FormData(form).entries());
-        localStorage.setItem('datos-'+hab, JSON.stringify(newData));
-        alert('Datos guardados para '+hab);
-      };
-    }
-
-    // ---------- proveedores ----------
-    function renderProveedores(){
-      const arr = LS.get('proveedor');
-      const el = $('#list-prov');
-      if(arr.length===0){ el.innerHTML = '<p class="muted">Sin proveedores.</p>'; return; }
-      el.innerHTML = arr.map(p=>`<li><div><strong>${p.nombre}</strong><div class="muted">${p.correo}</div></div><div class="pill">contrato</div></li>`).join('');
-    }
-    $('#form-prov').addEventListener('submit', e=>{
+    // ---------------- GASTOS ----------------
+    function guardarGasto(e) {
       e.preventDefault();
-      const data = Object.fromEntries(new FormData(e.currentTarget).entries());
-      const arr = LS.get('proveedor'); arr.push(data); LS.set('proveedor',arr);
-      e.currentTarget.reset(); renderProveedores(); alert('Proveedor guardado.');
-    });
-    renderProveedores();
-
-    // ---------- buscar ----------
-    $('#form-buscar').addEventListener('submit', e=>{
-      e.preventDefault();
-      const {coleccion, campo, valor} = Object.fromEntries(new FormData(e.currentTarget).entries());
-      const list = LS.get(coleccion);
-      const res = list.filter(it=> (it[campo]||'').toString().toLowerCase().includes((valor||'').toLowerCase()));
-      const el = $('#list-buscar');
-      if(res.length===0){ el.innerHTML = '<p class="muted">Sin resultados.</p>'; return; }
-      el.innerHTML = res.map(it=>`<li>
-        <div><strong>${it.categoria}</strong> <span class="pill">${it.periodo||'—'}</span><div class="muted">${it.fecha} · ${it.habitacion}</div></div>
-        <div>${money(it.importe, coleccion)}</div>
-      </li>`).join('');
-    });
-
-    // ---------- export ----------
-    function exportar(){
-      const data = {
-        ingresos: LS.get('ingreso'),
-        gastos: LS.get('gasto'),
-        habitaciones: ['1','2','3','4','5'].map(n=> JSON.parse(localStorage.getItem('datos-Habitación '+n)||'{}') ),
-        proveedores: LS.get('proveedor')
+      let id = document.getElementById("gastoId").value;
+      let obj = {
+        id: id || Date.now(),
+        fecha: document.getElementById("gastoFecha").value,
+        concepto: document.getElementById("gastoConcepto").value,
+        proveedor: document.getElementById("gastoProveedor").value,
+        habitacion: document.getElementById("gastoHabitacion").value,
+        notas: document.getElementById("gastoNotas").value,
+        cantidad: document.getElementById("gastoCantidad").value
       };
-      const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-      const a = document.createElement('a');
+      if (id) {
+        datos.gastos = datos.gastos.map(g => g.id == id ? obj : g);
+      } else {
+        datos.gastos.push(obj);
+      }
+      renderGastos();
+      backup();
+      e.target.reset();
+      document.getElementById("gastoId").value = "";
+    }
+
+    function editarGasto(id) {
+      let g = datos.gastos.find(x => x.id == id);
+      document.getElementById("gastoId").value = g.id;
+      document.getElementById("gastoFecha").value = g.fecha;
+      document.getElementById("gastoConcepto").value = g.concepto;
+      document.getElementById("gastoProveedor").value = g.proveedor;
+      document.getElementById("gastoHabitacion").value = g.habitacion;
+      document.getElementById("gastoNotas").value = g.notas;
+      document.getElementById("gastoCantidad").value = g.cantidad;
+    }
+
+    function borrarGasto(id) {
+      datos.gastos = datos.gastos.filter(g => g.id != id);
+      renderGastos();
+      backup();
+    }
+
+    function renderGastos() {
+      let ul = document.getElementById("listaGastos");
+      ul.innerHTML = "";
+      datos.gastos.forEach(g => {
+        let li = document.createElement("li");
+        li.textContent = `${g.fecha} - ${g.concepto} - Prov: ${g.proveedor} - ${g.habitacion} - ${g.notas}: ${g.cantidad}€ `;
+        li.innerHTML += `<button onclick="editarGasto(${g.id})">Editar</button>
+                         <button onclick="borrarGasto(${g.id})">Borrar</button>`;
+        ul.appendChild(li);
+      });
+    }
+
+    function autocompletarProveedorPorConcepto() {
+      let concepto = document.getElementById("gastoConcepto").value;
+      if (!concepto) {
+        document.getElementById("gastoProveedor").value = "";
+        return;
+      }
+      let proveedor = datos.proveedores.find(p => p.concepto === concepto);
+      if (proveedor) {
+        document.getElementById("gastoProveedor").value = proveedor.nombre;
+      } else {
+        document.getElementById("gastoProveedor").value = "";
+      }
+    }
+
+    // ---------------- HABITACIONES ----------------
+    function guardarHabitacion(e) {
+      e.preventDefault();
+      let id = document.getElementById("habId").value;
+      let hab = document.getElementById("habHabitacion").value;
+      let obj = {
+        id: id || Date.now(),
+        nombre: document.getElementById("habNombre").value,
+        dni: document.getElementById("habDNI").value,
+        movil: document.getElementById("habMovil").value,
+        nacionalidad: document.getElementById("habNacionalidad").value,
+        habitacion: hab,
+        entrada: document.getElementById("habEntrada").value,
+        salida: document.getElementById("habSalida").value
+      };
+      datos.habitaciones = datos.habitaciones.filter(h => h.habitacion != hab);
+      datos.habitaciones.push(obj);
+      renderHabitaciones();
+      backup();
+      e.target.reset();
+      document.getElementById("habId").value = "";
+    }
+
+    function editarHabitacion(id) {
+      let h = datos.habitaciones.find(x => x.id == id);
+      document.getElementById("habId").value = h.id;
+      document.getElementById("habNombre").value = h.nombre;
+      document.getElementById("habDNI").value = h.dni;
+      document.getElementById("habMovil").value = h.movil;
+      document.getElementById("habNacionalidad").value = h.nacionalidad;
+      document.getElementById("habHabitacion").value = h.habitacion;
+      document.getElementById("habEntrada").value = h.entrada;
+      document.getElementById("habSalida").value = h.salida;
+    }
+
+    function borrarHabitacion(id) {
+      datos.habitaciones = datos.habitaciones.filter(h => h.id != id);
+      renderHabitaciones();
+      backup();
+    }
+
+    function renderHabitaciones() {
+      let ul = document.getElementById("listaHabitaciones");
+      ul.innerHTML = "";
+      datos.habitaciones.forEach(h => {
+        let li = document.createElement("li");
+        li.textContent = `${h.habitacion} - ${h.nombre} (DNI:${h.dni}, Móvil:${h.movil}, Nac:${h.nacionalidad}, Entrada:${h.entrada}, Salida:${h.salida}) `;
+        li.innerHTML += `<button onclick="editarHabitacion(${h.id})">Editar</button>
+                         <button onclick="borrarHabitacion(${h.id})">Borrar</button>`;
+        ul.appendChild(li);
+      });
+    }
+
+    // ---------------- PROVEEDORES ----------------
+    function guardarProveedor(e) {
+      e.preventDefault();
+      let id = document.getElementById("provId").value;
+      let obj = {
+        id: id || Date.now(),
+        nombre: document.getElementById("provNombre").value,
+        concepto: document.getElementById("provConcepto").value,
+        usuario: document.getElementById("provUsuario").value,
+        password: document.getElementById("provPassword").value,
+        correo: document.getElementById("provCorreo").value
+      };
+      if (id) {
+        datos.proveedores = datos.proveedores.map(p => p.id == id ? obj : p);
+      } else {
+        datos.proveedores.push(obj);
+      }
+      renderProveedores();
+      backup();
+      e.target.reset();
+      document.getElementById("provId").value = "";
+    }
+
+    function editarProveedor(id) {
+      let p = datos.proveedores.find(x => x.id == id);
+      document.getElementById("provId").value = p.id;
+      document.getElementById("provNombre").value = p.nombre;
+      document.getElementById("provConcepto").value = p.concepto || "Otros";
+      document.getElementById("provUsuario").value = p.usuario || "";
+      document.getElementById("provPassword").value = p.password;
+      document.getElementById("provCorreo").value = p.correo;
+    }
+
+    function borrarProveedor(id) {
+      datos.proveedores = datos.proveedores.filter(p => p.id != id);
+      renderProveedores();
+      backup();
+    }
+
+    function renderProveedores() {
+      let ul = document.getElementById("listaProveedores");
+      ul.innerHTML = "";
+      datos.proveedores.forEach(p => {
+        let li = document.createElement("li");
+        li.textContent = `${p.nombre} - ${p.concepto || "N/A"} - Usuario: ${p.usuario || "N/A"} - ${p.correo}`;
+        li.innerHTML += `<button onclick="editarProveedor(${p.id})">Editar</button>
+                         <button onclick="borrarProveedor(${p.id})">Borrar</button>`;
+        ul.appendChild(li);
+      });
+      actualizarProveedoresSelect();
+    }
+
+    function actualizarProveedoresSelect() {
+      let sel = document.getElementById("gastoProveedor");
+      sel.innerHTML = "<option value=''>-- Ninguno --</option>";
+      datos.proveedores.forEach(p => {
+        let opt = document.createElement("option");
+        opt.value = p.nombre;
+        opt.textContent = p.nombre;
+        sel.appendChild(opt);
+      });
+    }
+
+    // ---------------- BACKUP ----------------
+    function backup() {
+      localStorage.setItem("gestorVivienda", JSON.stringify(datos));
+    }
+
+    function exportarBackup() {
+      let ahora = new Date();
+      let dia = String(ahora.getDate()).padStart(2, '0');
+      let mes = String(ahora.getMonth() + 1).padStart(2, '0');
+      let año = ahora.getFullYear();
+      let hora = String(ahora.getHours()).padStart(2, '0');
+      let minuto = String(ahora.getMinutes()).padStart(2, '0');
+      let nombreArchivo = `${dia}-${mes}-${año}-${hora}-${minuto}-backup.json`;
+
+      let blob = new Blob([JSON.stringify(datos)], {type:"application/json"});
+      let a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = 'vivienda.json';
+      a.download = nombreArchivo;
       a.click();
     }
 
-    // atajos de navegación
-    go('home');
+    function importarBackup(e) {
+      let file = e.target.files[0];
+      let reader = new FileReader();
+      reader.onload = ev => {
+        datos = JSON.parse(ev.target.result);
+        renderAll();
+        backup();
+      };
+      reader.readAsText(file);
+    }
+
+    // ---------------- RESUMEN ----------------
+    function calcularResumen() {
+      // --- INGRESOS ---
+      let habitacionesUnicas = [...new Set(datos.ingresos.map(i => i.habitacion).filter(h => h))];
+      let totalIngresosGeneral = 0;
+      let totalFianzasGlobal = 0;     // ✅ NUEVO
+      let totalAlquileresGlobal = 0;  // ✅ NUEVO
+      let tablaIngresos = document.getElementById("tablaIngresosHabitacion");
+      tablaIngresos.innerHTML = "";
+
+      let ingresosPorHabitacion = {};
+      datos.ingresos.forEach(i => {
+        if (!ingresosPorHabitacion[i.habitacion]) {
+          ingresosPorHabitacion[i.habitacion] = { total: 0, fianzas: 0, alquileres: 0 };
+        }
+        let cantidad = parseFloat(i.cantidad) || 0;
+        ingresosPorHabitacion[i.habitacion].total += cantidad;
+        totalIngresosGeneral += cantidad;
+
+        if (i.concepto === "Fianza") {
+          ingresosPorHabitacion[i.habitacion].fianzas += cantidad;
+          totalFianzasGlobal += cantidad; // ✅ Acumular global
+        } else if (i.concepto === "Alquiler") {
+          ingresosPorHabitacion[i.habitacion].alquileres += cantidad;
+          totalAlquileresGlobal += cantidad; // ✅ Acumular global
+        }
+      });
+
+      habitacionesUnicas.forEach(hab => {
+        let fila = document.createElement("tr");
+        let data = ingresosPorHabitacion[hab];
+        fila.innerHTML = `
+          <td>${hab}</td>
+          <td>${data.total.toFixed(2)}€</td>
+          <td>${data.fianzas.toFixed(2)}€</td>
+          <td>${data.alquileres.toFixed(2)}€</td>
+        `;
+        tablaIngresos.appendChild(fila);
+      });
+
+      // ✅ MOSTRAR TOTALES NUEVOS
+      document.getElementById("totalFianzas").textContent = totalFianzasGlobal.toFixed(2) + "€";
+      document.getElementById("totalAlquileres").textContent = totalAlquileresGlobal.toFixed(2) + "€";
+      document.getElementById("totalIngresosGeneral").textContent = totalIngresosGeneral.toFixed(2) + "€";
+
+      // --- GASTOS ---
+      let conceptosGastos = ["Electricidad", "Gas", "Agua", "Internet", "Comunidad", "Otros"];
+      let totalGastosGeneral = 0;
+      let gastosPorConcepto = {};
+      conceptosGastos.forEach(c => gastosPorConcepto[c] = 0);
+
+      datos.gastos.forEach(g => {
+        let cantidad = parseFloat(g.cantidad) || 0;
+        if (gastosPorConcepto[g.concepto] !== undefined) {
+          gastosPorConcepto[g.concepto] += cantidad;
+        } else {
+          gastosPorConcepto["Otros"] += cantidad;
+        }
+        totalGastosGeneral += cantidad;
+      });
+
+      let tablaGastos = document.getElementById("tablaGastosConcepto");
+      tablaGastos.innerHTML = "";
+      conceptosGastos.forEach(concepto => {
+        let fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${concepto}</td>
+          <td>${gastosPorConcepto[concepto].toFixed(2)}€</td>
+        `;
+        tablaGastos.appendChild(fila);
+      });
+
+      document.getElementById("totalGastosGeneral").textContent = totalGastosGeneral.toFixed(2) + "€";
+
+      // --- BENEFICIO ---
+      let beneficio = totalIngresosGeneral - totalGastosGeneral;
+      let beneficioElement = document.getElementById("beneficioNeto");
+      beneficioElement.textContent = beneficio.toFixed(2) + "€";
+      beneficioElement.className = beneficio >= 0 ? "beneficio-positivo" : "beneficio-negativo";
+    }
+
+    // ✅ Función para imprimir/exportar a PDF (desde navegador)
+    function imprimirResumen() {
+      window.print();
+    }
+
+    // ---------------- INIT ----------------
+    function renderAll() {
+      renderIngresos();
+      renderGastos();
+      renderHabitaciones();
+      renderProveedores();
+    }
+
+    window.onload = () => {
+      let d = localStorage.getItem("gestorVivienda");
+      if (d) datos = JSON.parse(d);
+      renderAll();
+    };
   </script>
 </body>
 </html>
